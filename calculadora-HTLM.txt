@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Horas Laboradas</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+    h1 { color: #333; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input, select, button { padding: 8px; margin-top: 5px; width: 100%; max-width: 300px; }
+    .result { margin-top: 20px; background: #fff; padding: 15px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    .result p { margin: 5px 0; }
+    button { background-color: #1976d2; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #0d47a1; }
+  </style>
+</head>
+<body>
+  <h1>Calculadora de Horas Laboradas</h1>
+
+  <label for="startTime">Hora de inicio:</label>
+  <input type="time" id="startTime">
+
+  <label for="endTime">Hora de fin:</label>
+  <input type="time" id="endTime">
+
+  <label for="dayType">Tipo de día:</label>
+  <select id="dayType">
+    <option value="normal">Normal</option>
+    <option value="domingo">Domingo</option>
+    <option value="festivo">Festivo</option>
+  </select>
+
+  <button onclick="calcularHoras()">Calcular</button>
+
+  <div class="result" id="result"></div>
+
+  <script>
+    const tarifas = {
+      diurna: 3954,
+      nocturna: 6124,
+      dominical_diurna: 13124,
+      dominical_nocturna: 19248,
+      festiva_diurna: 30623,
+      festiva_nocturna: 35964
+    };
+
+    function calcularHoras() {
+      const start = document.getElementById("startTime").value;
+      const end = document.getElementById("endTime").value;
+      const dayType = document.getElementById("dayType").value;
+      const resultDiv = document.getElementById("result");
+
+      if (!start || !end) {
+        alert("Por favor ingresa ambas horas.");
+        return;
+      }
+
+      let inicio = new Date("1970-01-01T" + start + ":00");
+      let fin = new Date("1970-01-01T" + end + ":00");
+      if (fin <= inicio) fin.setDate(fin.getDate() + 1);
+
+      let tiempo = new Date(inicio);
+      let msMinuto = 60 * 1000;
+      let contadores = {
+        diurna: 0,
+        nocturna: 0,
+        dominical_diurna: 0,
+        dominical_nocturna: 0,
+        festiva_diurna: 0,
+        festiva_nocturna: 0
+      };
+
+      while (tiempo < fin) {
+        let hora = tiempo.getHours();
+        let esNocturna = (hora < 6 || hora >= 21);
+
+        if (dayType === "normal") {
+          if (esNocturna) contadores.nocturna++;
+          else contadores.diurna++;
+        } else if (dayType === "domingo") {
+          if (esNocturna) contadores.dominical_nocturna++;
+          else contadores.dominical_diurna++;
+        } else if (dayType === "festivo") {
+          if (esNocturna) contadores.festiva_nocturna++;
+          else contadores.festiva_diurna++;
+        }
+
+        tiempo = new Date(tiempo.getTime() + msMinuto);
+      }
+
+      // Convertir minutos a horas
+      for (let tipo in contadores) {
+        contadores[tipo] = +(contadores[tipo] / 60).toFixed(2);
+      }
+
+      // Calcular pagos
+      let total = 0;
+      let detalles = "";
+      for (let tipo in contadores) {
+        const horas = contadores[tipo];
+        if (horas > 0) {
+          const pago = horas * tarifas[tipo];
+          total += pago;
+          detalles += `<p>${tipo.replace(/_/g, " ").toUpperCase()}: ${horas}h × $${tarifas[tipo].toLocaleString()} = <strong>$${pago.toLocaleString()}</strong></p>`;
+        }
+      }
+
+      resultDiv.innerHTML = `
+        <h3>Resumen:</h3>
+        ${detalles}
+        <hr>
+        <p><strong>Total a pagar: $${total.toLocaleString()}</strong></p>
+      `;
+    }
+  </script>
+</body>
+</html>
